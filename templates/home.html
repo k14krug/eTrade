@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Welcome to Your e*Trade Stock Account Tracker</h2>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Account Summary</div>
+            <div class="card-body">
+                <p><strong>Total Account Value:</strong> ${{ "%.2f"|format(total_account_value) }}</p>
+                <p><strong>Cash Balance:</strong> ${{ "%.2f"|format(cash_balance) }}</p>
+                <p><strong>Total Stock Value:</strong> ${{ "%.2f"|format(total_current_value) }}</p>
+                <p><strong>Total Gain/Loss:</strong> 
+                    <span class="{{ 'text-success' if total_gain_loss > 0 else 'text-danger' }}">
+                        ${{ "%.2f"|format(total_gain_loss) }} ({{ "%.2f"|format(overall_gain_loss_percentage) }}%)
+                    </span>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h3 class="mt-4">Current Positions</h3>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Symbol</th>
+            <th>Quantity</th>
+            <th>Average Price</th>
+            <th>Current Price</th>
+            <th>Current Value</th>
+            <th>Gain/Loss</th>
+            <th>Gain/Loss %</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for position in positions %}
+        <tr>
+            <td>{{ position.symbol }}</td>
+            <td>{{ position.quantity }}</td>
+            <td>${{ "%.2f"|format(position.average_price) }}</td>
+            <td>${{ "%.2f"|format(position.current_price) }}</td>
+            <td>${{ "%.2f"|format(position.current_value) }}</td>
+            <td class="{{ 'text-success' if position.gain_loss > 0 else 'text-danger' }}">
+                ${{ "%.2f"|format(position.gain_loss) }}
+            </td>
+            <td class="{{ 'text-success' if position.gain_loss_percentage > 0 else 'text-danger' }}">
+                {{ "%.2f"|format(position.gain_loss_percentage) }}%
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p><strong>Holdings Gain/Loss:</strong> 
+    <span class="{{ 'text-success' if position_gain_loss > 0 else 'text-danger' }}">
+        ${{ "%.2f"|format(position_gain_loss) }} ({{ "%.2f"|format(position_gain_loss_percentage) }}%)
+    </span>
+</p>
+
+<div class="mt-4">
+    <a href="{{ url_for('transactions') }}" class="btn btn-primary">Go to Transactions</a>
+</div>
+{% endblock %}

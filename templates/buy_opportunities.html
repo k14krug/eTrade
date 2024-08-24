@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Buy Opportunities</h2>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Symbol</th>
+            <th>Last Buy Price</th>
+            <th>Current Price</th>
+            <th>Price Difference</th>
+            <th>Price Difference (%)</th>
+            <th>P/E Ratio</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for opportunity in opportunities %}
+        <tr>
+            <td>{{ opportunity.symbol }}</td>
+            <td>${{ "%.2f"|format(opportunity.last_buy_price) }}</td>
+            <td>${{ "%.2f"|format(opportunity.current_price) }}</td>
+            <td>${{ "%.2f"|format(opportunity.price_difference) }}</td>
+            <td>{{ "%.2f"|format(opportunity.price_difference_percentage) }}%</td>
+            <td>{{ "%.2f"|format(opportunity.pe_ratio) if opportunity.pe_ratio else 'N/A' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
