@@ -4,6 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, Transactions, Position, User
+from stock_data import StockData
 from forms import LoginForm, RegistrationForm, TransactionForm
 from config import Config
 import yfinance as yf
@@ -22,6 +23,8 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+'''
+# moved to stock_data.py
 def get_latest_price(symbol):
     ticker = yf.Ticker(symbol)
     info = ticker.info
@@ -34,8 +37,8 @@ def get_latest_price(symbol):
             latest_price = todays_data['Close'].iloc[0]
             return latest_price
         else:
-            return None
-
+                return None
+'''
 @app.route('/')
 @login_required
 def home():
@@ -182,7 +185,7 @@ def transactions():
         
         # Get current price for active positions
         if transaction.id in active_transaction_ids:
-            transaction.current_price = get_latest_price(transaction.symbol)
+            transaction.current_price = StockData.get_latest_price(transaction.symbol)
         else:
             transaction.current_price = None
         # Calculate transaction amount
@@ -248,7 +251,7 @@ def calculate_stock_value_on_date(user_id, date, transaction_type=None, transact
       #print(f"    CSVOD - Position quantity: {remaining_quantity}")
 
     # Get the historical price for the stock on the given date
-    historical_price = get_historical_price(position.symbol, date)
+    historical_price = StockData.get_historical_price(position.symbol, date)
     if historical_price:
       total_value += remaining_quantity * historical_price
     #print(f"    CSVOD - Historical price for {position.symbol} on {date}: {historical_price} for a value of {remaining_quantity * historical_price}")
@@ -260,6 +263,8 @@ def calculate_stock_value_on_date(user_id, date, transaction_type=None, transact
 def index():
     return render_template('test.html')
 
+'''
+# moved to stock_data.py
 def get_historical_price(symbol, date):
     # Use yfinance to get historical price
     stock = yf.Ticker(symbol)
@@ -267,6 +272,7 @@ def get_historical_price(symbol, date):
     if not historical_data.empty:
         return historical_data['Close'].iloc[0]
     return None
+    '''
 
 def update_position(user_id, symbol, quantity, price, transaction_type):
     position = Position.query.filter_by(user_id=user_id, symbol=symbol).first()
@@ -296,7 +302,7 @@ def get_current_positions(user_id):
     active_transaction_ids = set()
 
     for position in positions:
-        current_price = get_latest_price(position.symbol)
+        current_price = StockData.get_latest_price(position.symbol)
         if current_price:
             current_value = position.quantity * current_price
             gain_loss = current_value - (position.quantity * position.average_price)
@@ -355,11 +361,12 @@ def get_buy_opportunities(user_id):
         ).order_by(Transactions.date.desc()).first()
         
         if last_buy:
-            current_price = get_latest_price(symbol)
+            current_price = StockData.get_latest_price(symbol)
             if current_price and current_price < last_buy.price:
                 # Get P/E ratio
-                ticker = yf.Ticker(symbol)
-                pe_ratio = ticker.info.get('trailingPE', None)
+                #ticker = yf.Ticker(symbol)
+                #pe_ratio = ticker.info.get('trailingPE', None)
+                pe_ratio = StockData.get_pe_ratio(symbol)
                 
                 opportunities.append({
                     'symbol': symbol,
@@ -384,36 +391,9 @@ from datetime import datetime, timedelta
 
 @app.route('/sp500', methods=['GET'])
 def sp500():
-    # Get S&P 500 symbols
-    sp500 = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')[0]
-    symbols = sp500['Symbol'].tolist()
-
-    # Get current date and date from a day ago
-    end_date = datetime.now()
-    start_date = end_date - timedelta(days=1)
-
-    # Fetch data for all symbols
-    data = yf.download(symbols, start=start_date, end=end_date)
-
-    # Prepare the data for the table
-    table_data = []
-    for symbol in symbols:
-        try:
-            current_price = data['Close'][symbol].iloc[-1]
-            previous_price = data['Close'][symbol].iloc[0]
-            gain_loss = current_price - previous_price
-            gain_loss_percentage = (gain_loss / previous_price) * 100
-
-            table_data.append({
-                'symbol': symbol,
-                'current_price': round(current_price, 2),
-                'previous_price': round(previous_price, 2),
-                'gain_loss': round(gain_loss, 2),
-                'gain_loss_percentage': round(gain_loss_percentage, 2)
-            })
-        except Exception as e:
-            print(f"Error processing {symbol}: {str(e)}")
-
+    
+    table_data = StockData.get_sp500_data()
+    
     # Sorting
     sort_by = request.args.get('sort_by', 'symbol')
     sort_order = request.args.get('sort_order', 'asc')
