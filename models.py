@@ -31,3 +31,41 @@ class Position(db.Model):
     quantity = db.Column(db.Float, nullable=False)
     average_price = db.Column(db.Float, nullable=False)
     user = db.relationship('User', backref=db.backref('positions', lazy='dynamic'))
+
+class SP500Stock(db.Model):
+    __tablename__ = 'sp500stock'
+    id = db.Column(db.Integer, primary_key=True)
+    symbol = db.Column(db.String(10), unique=True, nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    sector = db.Column(db.String(50))
+    current_pe = db.Column(db.Float)
+    one_year_target = db.Column(db.Float)
+    earnings_date = db.Column(db.String(50))  # Store as string for flexibility
+    fifty_two_week_low = db.Column(db.Float)
+    fifty_two_week_high = db.Column(db.Float)
+    last_updated = db.Column(db.DateTime, default=datetime.utcnow)
+
+class SP500DailyData(db.Model):
+    __tablename__ = 'sp500dailydata'
+    id = db.Column(db.Integer, primary_key=True)
+    stock_id = db.Column(db.Integer, db.ForeignKey('sp500stock.id'), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    open_price = db.Column(db.Float, nullable=False)
+    high_price = db.Column(db.Float, nullable=False)
+    low_price = db.Column(db.Float, nullable=False)
+    close_price = db.Column(db.Float, nullable=False)
+    volume = db.Column(db.BigInteger, nullable=False)
+    
+    stock = db.relationship('SP500Stock', backref=db.backref('daily_data', lazy='dynamic'))
+
+class SP500MonthlyStats(db.Model):
+    __tablename__ = 'sp500monthlystats'
+    id = db.Column(db.Integer, primary_key=True)
+    stock_id = db.Column(db.Integer, db.ForeignKey('sp500stock.id'), nullable=False)
+    month = db.Column(db.Date, nullable=False)
+    high_price = db.Column(db.Float, nullable=False)
+    low_price = db.Column(db.Float, nullable=False)
+    up_days = db.Column(db.Integer, default=0)
+    down_days = db.Column(db.Integer, default=0)
+    
+    stock = db.relationship('SP500Stock', backref=db.backref('monthly_stats', lazy='dynamic'))

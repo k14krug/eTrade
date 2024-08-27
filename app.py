@@ -1,9 +1,11 @@
-# app.py is the main file for the application. It contains the Flask application and the routes for the application.
+# app.py is the main file for the eTrade application. It contains the Flask application and the routes for the application.
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
+from flask_caching import Cache
+from flask_socketio import SocketIO
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, Transactions, Position, User
+from models import db, Transactions, Position, User, SP500Stock, SP500DailyData, SP500MonthlyStats
 from stock_data import StockData
 from forms import LoginForm, RegistrationForm, TransactionForm
 from config import Config
@@ -11,9 +13,15 @@ import yfinance as yf
 import csv
 import sys
 from datetime import datetime, time, timedelta
+from celery_app import create_celery_app
+from celery_worker import update_sp500_data_task
+from celery.result import AsyncResult
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
+cache = Cache(app, config={'CACHE_TYPE': 'simple'})
+socketio = SocketIO(app)
 
 db.init_app(app)
 login_manager = LoginManager(app)
@@ -259,21 +267,6 @@ def calculate_stock_value_on_date(user_id, date, transaction_type=None, transact
   #print(f"    CSVOD - Total value of all stock positions: {total_value}")
   return total_value
 
-@app.route('/test')
-def index():
-    return render_template('test.html')
-
-'''
-# moved to stock_data.py
-def get_historical_price(symbol, date):
-    # Use yfinance to get historical price
-    stock = yf.Ticker(symbol)
-    historical_data = stock.history(start=date, end=date + timedelta(days=1))
-    if not historical_data.empty:
-        return historical_data['Close'].iloc[0]
-    return None
-    '''
-
 def update_position(user_id, symbol, quantity, price, transaction_type):
     position = Position.query.filter_by(user_id=user_id, symbol=symbol).first()
     print(f"  Updating positions, current number of positions: {len(Position.query.all())}")
@@ -382,17 +375,24 @@ def get_buy_opportunities(user_id):
     
     return opportunities
 
-from flask import request, jsonify
-import yfinance as yf
-import pandas as pd
-from datetime import datetime, timedelta
-
-# ... (existing imports and code)
-
 @app.route('/sp500', methods=['GET'])
+@cache.cached(timeout=300)  # Cache for 5 minutes
 def sp500():
+    # Check if we need to update the data
+    last_update = SP500Stock.query.order_by(SP500Stock.last_updated.desc()).first()
+    if not last_update or (datetime.utcnow() - last_update.last_updated).days >= .0:
+        # Determine the start date for data retrieval
+        start_date = Config.SP500_START_DATE
+        if last_update:
+            start_date = last_update.last_updated.date() + timedelta(days=1)
+        print(f"Updating S&P 500 data from {start_date}")
+        task = update_sp500_data_task.delay(start_date.strftime('%Y-%m-%d'))
+        return render_template('sp500.html', task_id=task.id)
+    print("Data less than 12 hours old, no need to update.")
     
+    # Get the data for display
     table_data = StockData.get_sp500_data()
+    print(f"  Access get_sp55_data, Number of rows returned: {len(table_data)}")
     
     # Sorting
     sort_by = request.args.get('sort_by', 'symbol')
@@ -415,6 +415,40 @@ def sp500():
                            total_pages=total_pages, 
                            sort_by=sort_by, 
                            sort_order=sort_order)
+
+@app.route('/task_status/<task_id>')
+def task_status(task_id):
+    task = AsyncResult(task_id)
+    if task.state == 'PENDING':
+        response = {
+            'state': task.state,
+            'current': 0,
+            'total': 1,
+            'status': 'Pending...'
+        }
+    elif task.state != 'FAILURE':
+        response = {
+            'state': task.state,
+            'current': task.info.get('current', 0),
+            'total': task.info.get('total', 1),
+            'status': task.info.get('status', '')
+        }
+        if 'result' in task.info:
+            response['result'] = task.info['result']
+    else:
+        response = {
+            'state': task.state,
+            'current': 1,
+            'total': 1,
+            'status': str(task.info)
+        }
+    return jsonify(response)
+
+@app.route('/update_sp500', methods=['POST'])
+def update_sp500():
+    task = update_sp500_data_task.delay(datetime.utcnow().date().strftime('%Y-%m-%d'))
+    cache.clear()
+    return jsonify({'success': True, 'message': 'S&P 500 data update initiated.', 'task_id': task.id})
 
 
 def process_csv_transactions(file_path, user_id):
@@ -520,4 +554,4 @@ if __name__ == '__main__':
     else:
         with app.app_context():
             db.create_all()
-        app.run(port=5010, debug=True)
+        socketio.run(app, port=5010, debug=True)        
