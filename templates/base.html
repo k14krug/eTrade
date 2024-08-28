@@ -23,13 +23,13 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('transactions') }}">Transactions</a>
+                        <a class="nav-link" href="{{ url_for('transactions.transactions') }}">Transactions</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('buy_opportunities') }}">Buy Opportunities</a>
+                        <a class="nav-link" href="{{ url_for('transactions.buy_opportunities') }}">Buy Opportunities</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('sp500') }}">S&P 500 Stocks</a>
+                        <a class="nav-link" href="{{ url_for('sp500.sp500') }}">S&P 500 Stocks</a>
                     </li>
                     {% if current_user.is_authenticated %}
                     <li class="nav-item">
