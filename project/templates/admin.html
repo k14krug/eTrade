@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mb-4">Admin Panel</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Clear Cache</h5>
+                <button id="clearCacheBtn" class="btn btn-primary">Clear Cache</button>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Cancel Task</h5>
+                <div class="input-group mb-3">
+                    <input type="text" id="taskIdInput" class="form-control" placeholder="Enter Task ID">
+                    <div class="input-group-append">
+                        <button id="cancelTaskBtn" class="btn btn-primary">Cancel Task</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="message" class="alert" style="display: none;"></div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+    document.getElementById('clearCacheBtn').addEventListener('click', function() {
+        axios.post('{{ url_for("main.clear_cache") }}')
+            .then(function (response) {
+                showMessage(response.data.message, 'success');
+            })
+            .catch(function (error) {
+                showMessage(error.response.data.error, 'danger');
+            });
+    });
+
+    document.getElementById('cancelTaskBtn').addEventListener('click', function() {
+        const taskId = document.getElementById('taskIdInput').value;
+        if (!taskId) {
+            showMessage('Please enter a Task ID', 'warning');
+            return;
+        }
+        axios.get(`{{ url_for("main.cancel", task_id="") }}${taskId}`)
+            .then(function (response) {
+                showMessage(response.data, 'success');
+            })
+            .catch(function (error) {
+                showMessage('Error cancelling task', 'danger');
+            });
+    });
+
+    function showMessage(message, type) {
+        const messageDiv = document.getElementById('message');
+        messageDiv.textContent = message;
+        messageDiv.className = `alert alert-${type}`;
+        messageDiv.style.display = 'block';
+        setTimeout(() => {
+            messageDiv.style.display = 'none';
+        }, 5000);
+    }
+</script>
+{% endblock %}

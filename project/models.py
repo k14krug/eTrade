@@ -43,7 +43,8 @@ class SP500Stock(db.Model):
     sector = db.Column(db.String(50))
     last_updated = db.Column(db.DateTime, default=datetime.utcnow)
 
-class SP500StockData(db.Model):
+class SP500HistData(db.Model):
+    __tablename__ = 'sp500_stock_data'
     id = db.Column(db.Integer, primary_key=True)
     stock_id = db.Column(db.Integer, db.ForeignKey('sp500stock.id'), nullable=False)
     date = db.Column(db.Date, nullable=False)

@@ -1,29 +1,49 @@
 from flask import Flask
 from .extensions import db, cache
-from .views import main
+#from .routes import main
 from .utils import make_celery
-#from .config import onfig
+from .config import config
+import os
+from flask_login import LoginManager
+from flask_cors  import CORS
 
-def create_app():
+login_manager = LoginManager()
+
+def create_app(config_name=None):
     app = Flask(__name__)
     
-    #app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///db.sqlite3"
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///eTrade.sqlite"
-    app.config["SECRET_KEY"] = "&DwoQK)g%*Wit2YpE#-46Oz8Z7Iuvy0n"
-    app.config["CELERY_CONFIG"] = {"broker_url": "redis://localhost:6379/0", "result_backend": "redis://localhost:6379/0"}
-    #app.config["CELERY_CONFIG"] = {"broker_url": "redis://redis", "result_backend": "redis://redis"}
+    if config_name is None:
+        config_name = os.environ.get('FLASK_CONFIG', 'default')
+    
+    app.config.from_object(config[config_name])
 
-    # Cache configuration
-    app.config["CACHE_TYPE"] = "redis"
-    app.config["CACHE_REDIS_URL"] = "redis://localhost:6379/1"
+    login_manager.init_app(app)
+    login_manager.login_view = 'main.login'
 
+    # Register blueprints
+    from .routes import main as main_blueprint
+    #app.register_blueprint(main)
+    app.register_blueprint(main_blueprint)
+
+    from .transactions import bp as transactions_bp
+    app.register_blueprint(transactions_bp, url_prefix='/transactions')
+
+    from .sp500 import bp as sp500_bp
+    app.register_blueprint(sp500_bp, url_prefix='/sp500')
 
     db.init_app(app)
     cache.init_app(app) 
 
     celery = make_celery(app)
     celery.set_default()
-    
-    app.register_blueprint(main)
 
-    return app, celery
+    # Register CLI command
+    from .cli import init_sp500_command
+    app.cli.add_command(init_sp500_command)
+
+    return app, celery  
+
+@login_manager.user_loader
+def load_user(user_id):
+    from .models import User  # Import here to avoid circular imports
+    return User.query.get(int(user_id))

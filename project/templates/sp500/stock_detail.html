@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>{{ stock.symbol }} - {{ stock.company_name }}</h1>
+
+<h2>Current Information</h2>
+<table>
+    <tr><th>Latest Price</th><td>{{ stock.info.latest_price }}</td></tr>
+    <tr><th>Previous Day Price</th><td>{{ stock.info.previous_day_price }}</td></tr>
+    <tr><th>P/E Ratio</th><td>{{ stock.info.pe_ratio }}</td></tr>
+    <tr><th>1 Year Target</th><td>{{ stock.info.one_year_target }}</td></tr>
+    <tr><th>52 Week Range</th><td>{{ stock.info.fifty_two_week_low }} - {{ stock.info.fifty_two_week_high }}</td></tr>
+    <tr><th>Month High</th><td>{{ stock.info.month_high }}</td></tr>
+    <tr><th>Month Low</th><td>{{ stock.info.month_low }}</td></tr>
+    <tr><th>Times Above 1% in Past Month</th><td>{{ stock.info.times_above_one_percent }}</td></tr>
+    <tr><th>Times Below 1% in Past Month</th><td>{{ stock.info.times_below_one_percent }}</td></tr>
+</table>
+
+<h2>Historical Price Chart</h2>
+<div id="price-chart"></div>
+
+<h2>Historical Volume Chart</h2>
+<div id="volume-chart"></div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Fetch the data and render the component
+  fetch('/sp500/stock/{{ stock.symbol }}/historical')
+    .then(response => response.json())
+    .then(data => {
+      console.log('Fetched data:', data);
+      const chartData = data.dates.map((date, index) => ({
+        date: date,
+        price: parseFloat(data.prices[index])
+      }));
+      console.log('Processed chart data:', chartData);
+      })
+    .catch(error => console.error('Error:', error));
+</script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Fetch historical data
+    fetch('{{ url_for("sp500.stock_historical_data", symbol=stock.symbol) }}')
+        .then(response => response.json())
+        .then(data => {
+            // Create price chart
+            var priceTrace = {
+                x: data.dates,
+                y: data.prices,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Price'
+            };
+
+            var priceLayout = {
+                title: '{{ stock.symbol }} Historical Price',
+                xaxis: { title: 'Date' },
+                yaxis: { title: 'Price' }
+            };
+
+            Plotly.newPlot('price-chart', [priceTrace], priceLayout);
+
+            // Create volume chart
+            var volumeTrace = {
+                x: data.dates,
+                y: data.volumes,
+                type: 'bar',
+                name: 'Volume'
+            };
+
+            var volumeLayout = {
+                title: '{{ stock.symbol }} Historical Volume',
+                xaxis: { title: 'Date' },
+                yaxis: { title: 'Volume' }
+            };
+
+            Plotly.newPlot('volume-chart', [volumeTrace], volumeLayout);
+        });
+});
+</script>
+{% endblock %}
