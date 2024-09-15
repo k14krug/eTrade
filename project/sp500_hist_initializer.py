@@ -1,4 +1,4 @@
-# sp500_initializer.py
+# sp500_hist_initializer.py
 
 import pandas as pd
 import yfinance as yf
@@ -9,6 +9,8 @@ from sqlalchemy.exc import IntegrityError
 import logging
 import sys
 import os
+from project import create_app  # Adjust this import based on your app setup
+
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -70,4 +72,6 @@ def initialize_sp500_data(start_date=None):
 
 if __name__ == "__main__":
     print("In Main - Initializing S&P 500 data")
-    initialize_sp500_data()
+    app, _ = create_app()  # Unpack the app and ignore the celery instance
+    with app.app_context():  # Enter the application context
+        initialize_sp500_data()  # Call your initialization function
