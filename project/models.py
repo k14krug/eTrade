@@ -46,8 +46,8 @@ class SP500Stock(db.Model):
 class SP500HistData(db.Model):
     __tablename__ = 'sp500_stock_data'
     id = db.Column(db.Integer, primary_key=True)
-    stock_id = db.Column(db.Integer, db.ForeignKey('sp500stock.id'), nullable=False)
-    date = db.Column(db.Date, nullable=False)
+    stock_id = db.Column(db.Integer, db.ForeignKey('sp500stock.id'), nullable=False, index=True)  # Add index
+    date = db.Column(db.Date, nullable=False, index=True)  # Add index
     open_price = db.Column(db.Float)
     high_price = db.Column(db.Float)
     low_price = db.Column(db.Float)

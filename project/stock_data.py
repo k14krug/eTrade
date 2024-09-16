@@ -83,3 +83,21 @@ class StockData:
                 below_count += 1
         print(f"Symbol: {symbol}, above: {above_count}, below: {below_count}")
         return above_count, below_count
+    
+    @staticmethod
+    def get_intraday_data(symbol):
+        # Fetch intraday data using yfinance
+        ticker = yf.Ticker(symbol)
+        # Fetching intraday data with 1-minute intervals for the last trading day
+        intraday_data = ticker.history(period="1d", interval="1m")
+
+        # Prepare data for JSON response
+        dates = [d.strftime('%Y-%m-%d %H:%M:%S') for d in intraday_data.index]
+        prices = intraday_data['Close'].tolist()
+        volumes = intraday_data['Volume'].tolist()
+
+        return {
+            'dates': dates,
+            'prices': prices,
+            'volumes': volumes
+        }
