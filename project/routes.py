@@ -29,6 +29,7 @@ def admin_panel():
 @main.route("/cancel/<task_id>")
 def cancel(task_id):
     task = update_sp500_data.AsyncResult(task_id)
+    logger.info(f"Canceling task ID: {task_id}")
     task.abort()
     return "Task canceled successfully"
 

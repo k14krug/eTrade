@@ -1,4 +1,6 @@
 cache_test.py
 __pycache__/
 junk
+junk.py
 eTrade.sqlite
+instance/eTrade.sqlite

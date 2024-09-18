@@ -5,113 +5,243 @@
 {% block content %}
 <h1>S&P 500 Overview</h1>
 
-<button id="update-data" class="btn btn-primary mb-3">Update Today's Data</button>
+<!-- Multi-Select Dropdown for Selecting Multiple Filters -->
+<div class="row g-3 align-items-center mb-4">
+    <div class="col-auto">
+        <label for="filter-select" class="form-label mb-0">Select Filters</label>
+        <div class="dropdown">
+            <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                Select Filters
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                <li>
+                    <div class="form-check">
+                        <input class="form-check-input filter-checkbox" type="checkbox" value="filter1" id="filterfilter1">
+                        <label class="form-check-label" for="filterfilter1">
+                            Filter 1
+                        </label>
+                    </div>
+                </li>
+                <li>
+                    <div class="form-check">
+                        <input class="form-check-input filter-checkbox" type="checkbox" value="filter2" id="filterfilter2">
+                        <label class="form-check-label" for="filterfilter2">
+                            Filter 2
+                        </label>
+                    </div>
+                </li>
+                <!-- Add more filters here as needed -->
+                <li>
+                    <hr>
+                    <!-- Reset all filters option -->
+                    <div class="form-check">
+                        <input class="form-check-input filter-checkbox" type="checkbox" value="reset" id="filterreset">
+                        <label class="form-check-label" for="filterreset">
+                            Reset All Filters
+                        </label>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Update Today's Data Button -->
+    <div class="col-auto">
+        <button id="update-data" class="btn btn-outline-primary">Update Today's Data</button>
+    </div>
+</div>
+
+<!-- Display Update Status -->
 <div id="update-status"></div>
 
-<button id="update-hist-data" class="btn btn-primary mb-3">Update Hist Data</button>
-<div id="update-status"></div>
-
-<table id="sp500-table" class="table table-striped table-bordered">
-    <thead>
-        <tr>
-            <th>Symbol</th>
-            <th>Company Name</th>
-            <th>Latest Price</th>
-            <th>Previous Day Price</th>
-            <th>Gain/Loss %</th>
-            <th>Month High</th>
-            <th>Month Low</th>
-            <th>P/E Ratio</th>
-            <th>1 Year Target</th>
-            <th>52 Week Range</th>
-            <th>Times Above 1%</th>
-            <th>Times Below 1%</th>
-            <th>Last Update</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for stock in stocks %}
-        <tr>
-            <td><a href="{{ url_for('sp500.stock_detail', symbol=stock.symbol) }}">{{ stock.symbol }}</a></td>
-            <td>{{ stock.company_name }}</td>
-            <td>{{ stock.info.latest_price }}</td>
-            <td>{{ stock.info.previous_day_price }}</td>
-            <td>
-                {% if stock.info.latest_price is not none and stock.info.previous_day_price is not none %}
-                    {{ ((stock.info.latest_price - stock.info.previous_day_price) / stock.info.previous_day_price * 100) | round(2) }}%
-                {% else %}
-                    N/A
-                {% endif %}
-            </td>
-            <td>{{ stock.info.month_high }}</td>
-            <td>{{ stock.info.month_low }}</td>
-            <td>{{ stock.info.pe_ratio }}</td>
-            <td>{{ stock.info.one_year_target }}</td>
-            <td>{{ stock.info.fifty_two_week_low }} - {{ stock.info.fifty_two_week_high }}</td>
-            <td>{{ stock.info.times_above_one_percent }}</td>
-            <td>{{ stock.info.times_below_one_percent }}</td>
-            <td>{{ stock.info.last_updated }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<!-- Table for Displaying S&P 500 Stocks -->
+<div class="table-responsive">
+    <table id="sp500-table" class="table table-striped table-hover align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>Symbol</th>
+                <th>Company Name</th>
+                <th>Latest Price</th>
+                <th>Previous Day Price</th>
+                <th>Gain/Loss %</th>
+                <th>Month High</th>
+                <th>Month Low</th>
+                <th>P/E Ratio</th>
+                <th>1 Year Target</th>
+                <th>52 Week Range</th>
+                <th>Times Above 1%</th>
+                <th>Times Below 1%</th>
+                <th>Last Update</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for stock in stocks %}
+            <tr>
+                <td><a href="{{ url_for('sp500.stock_detail', symbol=stock.symbol) }}">{{ stock.symbol }}</a></td>
+                <td>{{ stock.company_name }}</td>
+                <td>{{ stock.info.latest_price }}</td>
+                <td>{{ stock.info.previous_day_price }}</td>
+                <td>
+                    {% if stock.info.latest_price is not none and stock.info.previous_day_price is not none %}
+                        {{ ((stock.info.latest_price - stock.info.previous_day_price) / stock.info.previous_day_price * 100) | round(2) }}%
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+                <td>{{ stock.info.month_high }}</td>
+                <td>{{ stock.info.month_low }}</td>
+                <td>{{ stock.info.pe_ratio }}</td>
+                <td>{{ stock.info.one_year_target }}</td>
+                <td>{{ stock.info.fifty_two_week_low }} - {{ stock.info.fifty_two_week_high }}</td>
+                <td>{{ stock.info.times_above_one_percent }}</td>
+                <td>{{ stock.info.times_below_one_percent }}</td>
+                <td>{{ stock.info.last_updated }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
+
 <script>
-$(document).ready(function() {
-    $('#sp500-table').DataTable({
-        "pageLength": 25,
-        "order": [[4, "desc"]]  // Sort by Gain/Loss % column descending
-    });
-
-    $('#update-data').click(function() {
-        $.ajax({
-            url: '{{ url_for("main.update_data") }}',
-            method: 'POST',
-            success: function(response) {
-                $('#update-status').text('Update task started. Task ID: ' + response.task_id);
-                checkTaskStatus(response.task_id);
-            },
-            error: function() {
-                $('#update-status').text('Error starting update task');
+    $(document).ready(function() {
+        const FILTER_QUERY_PARAM = 'stock_filters';
+        const RESET_FILTER = 'reset';
+        const FILTER_STORAGE_KEY = 'selectedFilters';
+        const FILTER_TIMESTAMP_KEY = 'filterTimestamp';
+        const FILTER_EXPIRATION_HOURS = 24; // Expire filters after 24 hours
+        var selectedFilters = [];
+    
+        // Helper function to check filter expiration
+        function isFilterExpired() {
+            const savedTimestamp = localStorage.getItem(FILTER_TIMESTAMP_KEY);
+            if (savedTimestamp) {
+                const now = new Date();
+                const expirationDate = new Date(parseInt(savedTimestamp) + FILTER_EXPIRATION_HOURS * 60 * 60 * 1000);
+                return now > expirationDate;
             }
-        });
-    });
-
-    $('#update-hist-data').click(function() {
-        $.ajax({
-            url: '{{ url_for("sp500.update_hist_data") }}',
-            method: 'POST',
-            success: function(response) {
-                $('#update-status').text('Update task started. Task ID: ' + response.task_id);
-                checkTaskStatus(response.task_id);
-            },
-            error: function() {
-                $('#update-status').text('Error starting update task');
+            return false;
+        }
+    
+        // Pre-select filters based on localStorage or URL
+        if (!isFilterExpired()) {
+            const savedFilters = JSON.parse(localStorage.getItem(FILTER_STORAGE_KEY));
+            if (savedFilters && savedFilters.length > 0) {
+                selectedFilters = savedFilters;
             }
-        });
-    });
-    function checkTaskStatus(taskId) {
-        $.ajax({
-            url: '{{ url_for("main.task_status", task_id="") }}' + taskId,
-            method: 'GET',
-            success: function(response) {
-                $('#update-status').text('Task status: ' + response.status);
-                if (response.state !== 'SUCCESS' && response.state !== 'FAILURE') {
-                    setTimeout(function() {
-                        checkTaskStatus(taskId);
-                    }, 5000);  // Check again after 5 seconds
-                } else if (response.state === 'SUCCESS') {
-                    location.reload();  // Reload the page to show updated data
+        }
+    
+        var urlParams = new URLSearchParams(window.location.search);
+        var filtersFromURL = urlParams.get(FILTER_QUERY_PARAM);
+    
+        if (filtersFromURL) {
+            selectedFilters = filtersFromURL.split(',');
+            selectedFilters.forEach(function(filter) {
+                if (filter === RESET_FILTER) {
+                    selectedFilters = [];
+                    localStorage.removeItem(FILTER_STORAGE_KEY); // Clear localStorage
+                    localStorage.removeItem(FILTER_TIMESTAMP_KEY);
+                    return false;
                 }
-            },
-            error: function() {
-                $('#update-status').text('Error checking task status');
+                $('#filter' + filter).prop('checked', true); // Mark the checkboxes as checked
+            });
+        }
+    
+        // Update the dropdown button label to reflect the number of selected filters
+        function updateFilterButtonLabel() {
+            const filterCount = selectedFilters.length;
+            const buttonLabel = filterCount > 0 ? `Selected Filters (${filterCount})` : 'Select Filters';
+            $('#dropdownMenuButton').text(buttonLabel);
+        }
+    
+        // Function to update the selected filters based on the checkboxes
+        function updateSelectedFilters() {
+            selectedFilters = $('.filter-checkbox:checked').map(function() {
+                return $(this).val();
+            }).get();
+    
+            if (selectedFilters.includes(RESET_FILTER)) {
+                selectedFilters = [];
+                $('.filter-checkbox').prop('checked', false); // Uncheck all filters
+                localStorage.removeItem(FILTER_STORAGE_KEY); // Clear filters in localStorage
+                localStorage.removeItem(FILTER_TIMESTAMP_KEY);
+            } else {
+                // Store filters and timestamp in localStorage
+                localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(selectedFilters));
+                localStorage.setItem(FILTER_TIMESTAMP_KEY, Date.now().toString());
             }
+    
+            updateFilterButtonLabel();
+        }
+    
+        // Function to update the URL based on the selected filters
+        function applyFilters() {
+            if (selectedFilters.length > 0) {
+                var newUrl = new URL(window.location.href);
+                newUrl.searchParams.set(FILTER_QUERY_PARAM, selectedFilters.join(','));
+                window.location.href = newUrl.href; // Reload the page with the new filters
+            } else {
+                var cleanUrl = new URL(window.location.href);
+                cleanUrl.searchParams.delete(FILTER_QUERY_PARAM); // Remove the filters query parameter
+                window.location.href = cleanUrl.href; // Reload the page with the clean URL
+            }
+        }
+    
+        // Listen for the dropdown close event to apply filters
+        $('#dropdownMenuButton').on('hidden.bs.dropdown', function() {
+            updateSelectedFilters();
+            applyFilters();
         });
-    }
-});
+    
+        // DataTables initialization
+        $('#sp500-table').DataTable({
+            "pageLength": 25,
+            "order": [[4, "desc"]]  // Sort by Gain/Loss % column descending
+        });
+    
+        // Ajax to update today's data
+        $('#update-data').click(function() {
+            $.ajax({
+                url: '{{ url_for("main.update_data") }}',
+                method: 'POST',
+                success: function(response) {
+                    $('#update-status').text('Update task started. Task ID: ' + response.task_id);
+                    checkTaskStatus(response.task_id);
+                },
+                error: function(xhr, status, error) {
+                    $('#update-status').text('Error starting update task: ' + error);
+                    console.error("Error Details: ", status, xhr.responseText);
+                }
+            });
+        });
+    
+        // Function to check task status with throttling
+        function checkTaskStatus(taskId) {
+            $.ajax({
+                url: '{{ url_for("main.task_status", task_id="") }}' + taskId,
+                method: 'GET',
+                success: function(response) {
+                    $('#update-status').text('Task status: ' + response.status);
+                    if (response.state !== 'SUCCESS' && response.state !== 'FAILURE') {
+                        setTimeout(function() {
+                            checkTaskStatus(taskId);
+                        }, 10000);  // Check again after 10 seconds
+                    } else if (response.state === 'SUCCESS') {
+                        location.reload();  // Reload the page to show updated data
+                    }
+                },
+                error: function() {
+                    $('#update-status').text('Error checking task status');
+                }
+            });
+        }
+    
+        // Initialize filter button label on page load
+        updateFilterButtonLabel();
+    });
 </script>
+    
 {% endblock %}

@@ -1,5 +1,5 @@
 from flask import Flask
-from .extensions import db, cache
+from .extensions import db, cache, migrate
 #from .routes import main
 from .utils import make_celery
 from .config import config
@@ -33,6 +33,7 @@ def create_app(config_name=None):
 
     db.init_app(app)
     cache.init_app(app) 
+    migrate.init_app(app, db)
 
     celery = make_celery(app)
     celery.set_default()

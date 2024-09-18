@@ -85,11 +85,19 @@ class StockData:
         return above_count, below_count
     
     @staticmethod
-    def get_intraday_data(symbol):
+    def get_intraday_data(symbol, days=1):  # Add days parameter, default to 1
         # Fetch intraday data using yfinance
         ticker = yf.Ticker(symbol)
-        # Fetching intraday data with 1-minute intervals for the last trading day
-        intraday_data = ticker.history(period="1d", interval="1m")
+
+        if days == 1:
+            # Fetching intraday data with 1-minute intervals for the last trading day
+            intraday_data = ticker.history(period="1d", interval="1m")
+        else:
+            # Calculate the start date for the last 'days' business days
+            end_date = datetime.now()
+            business_days = pd.date_range(end=end_date, periods=days, freq='B')
+            start_date = business_days[0]
+            intraday_data = ticker.history(start=start_date, end=end_date, interval="1m")
 
         # Prepare data for JSON response
         dates = [d.strftime('%Y-%m-%d %H:%M:%S') for d in intraday_data.index]
