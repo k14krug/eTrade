@@ -60,6 +60,11 @@ def task_status(task_id):
             'state': task.state,
             'status': 'Pending...'
         }
+    elif task.state == 'PROGRESS':
+        response = {
+            'state': task.state,
+            'status': task.info.get('status', 'Processing...')
+        }
     elif task.state != 'FAILURE':
         response = {
             'state': task.state,

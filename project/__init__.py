@@ -1,13 +1,26 @@
+# File: ./project/__init__.py
+
 from flask import Flask
 from .extensions import db, cache, migrate
-#from .routes import main
 from .utils import make_celery
 from .config import config
 import os
 from flask_login import LoginManager
-from flask_cors  import CORS
+from flask_cors import CORS
 
 login_manager = LoginManager()
+
+def is_auto_reload():
+    """Check if the app is being reloaded due to code changes in development."""
+    return os.getenv('WERKZEUG_RUN_MAIN') == 'True'
+
+def submit_initial_tasks(celery):
+    """Submit SP500 update task only if it's the initial startup (not a reload)."""
+    if not is_auto_reload():
+        print("Submitting SP500 data update task...")
+        celery.send_task('update_sp500_data')
+    else:
+        print("Skipping task submission due to auto-reload.")
 
 def create_app(config_name=None):
     app = Flask(__name__)
@@ -22,7 +35,6 @@ def create_app(config_name=None):
 
     # Register blueprints
     from .routes import main as main_blueprint
-    #app.register_blueprint(main)
     app.register_blueprint(main_blueprint)
 
     from .transactions import bp as transactions_bp
@@ -34,13 +46,16 @@ def create_app(config_name=None):
     db.init_app(app)
     cache.init_app(app) 
     migrate.init_app(app, db)
+   
+    # Import the tasks so Celery registers them
+    from project.sp500 import tasks
 
+    # Initialize Celery
     celery = make_celery(app)
     celery.set_default()
 
-    # Register CLI command
-    from .cli import init_sp500_command
-    app.cli.add_command(init_sp500_command)
+    # Submit the Celery task if this is the first startup (not during an auto-reload)
+    submit_initial_tasks(celery)
 
     return app, celery  
 

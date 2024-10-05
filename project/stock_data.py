@@ -2,6 +2,7 @@
 import yfinance as yf
 from datetime import datetime, timedelta
 import pandas as pd
+import time
 
 class StockData:
     @staticmethod
@@ -109,3 +110,44 @@ class StockData:
             'prices': prices,
             'volumes': volumes
         }
+    
+    @staticmethod
+    def time_ago(publish_time):
+        """
+        Converts a Unix timestamp into a human-readable 'time ago' format, e.g., '2 days ago'.
+        """
+        current_time = time.time()
+        time_diff = current_time - publish_time
+        
+        days = time_diff // (24 * 3600)
+        if days >= 1:
+            return f"{int(days)} days ago"
+        hours = time_diff // 3600
+        if hours >= 1:
+            return f"{int(hours)} hours ago"
+        minutes = time_diff // 60
+        if minutes >= 1:
+            return f"{int(minutes)} minutes ago"
+        return "just now"
+
+    @staticmethod
+    def get_stock_news(symbol):
+        """
+        Fetches the latest news for a given stock symbol and returns a formatted list of articles.
+        """
+        ticker = yf.Ticker(symbol)
+        stock_news = ticker.news
+
+        # Format the stock news
+        formatted_news = []
+        for article in stock_news:
+            formatted_article = {
+                'title': article.get('title', 'No title available'),
+                'link': article.get('link', '#'),
+                'publisher': article.get('publisher', 'Unknown provider'),
+                'thumbnail': article.get('thumbnail', {}).get('resolutions', [{}])[0].get('url', ''),
+                'published_date': StockData.time_ago(article['providerPublishTime'])
+            }
+            formatted_news.append(formatted_article)
+        
+        return formatted_news

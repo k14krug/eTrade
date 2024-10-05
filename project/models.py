@@ -1,6 +1,7 @@
 from .extensions import db 
 from flask_login import UserMixin
 from datetime import datetime
+from sqlalchemy import Index
 
 '''class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -13,6 +14,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128))
     starting_balance = db.Column(db.Float, default=0.0)
+    
     transactions = db.relationship('Transactions', backref='user', lazy='dynamic')
 
 class Transactions(db.Model):
@@ -26,6 +28,7 @@ class Transactions(db.Model):
     cash_balance = db.Column(db.Float, nullable=False)
     stock_value = db.Column(db.Float, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
 
 class Position(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -53,7 +56,13 @@ class SP500HistData(db.Model):
     low_price = db.Column(db.Float)
     close_price = db.Column(db.Float)
     volume = db.Column(db.BigInteger)
-    stock = db.relationship('SP500Stock', backref=db.backref('historical_data', lazy='dynamic'))
+    sma_20 = db.Column(db.Float)  # 20-day Simple Moving Average
+    sma_50 = db.Column(db.Float)  # 50-day Simple Moving Average
+    stock = db.relationship('SP500Stock', backref=db.backref('historical_data', lazy='dynamic'))    
+    __table_args__ = (
+        Index('idx_sp500histdata_stock_id', 'stock_id'),
+        Index('idx_sp500histdata_date', 'date'),
+    )
 
 class SP500StockInfo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -70,3 +79,24 @@ class SP500StockInfo(db.Model):
     times_below_one_percent = db.Column(db.Integer)
     last_updated = db.Column(db.DateTime, default=datetime.utcnow)
     stock = db.relationship('SP500Stock', backref=db.backref('info', uselist=False))
+
+class SP500StockPacificTime(db.Model):
+    __tablename__ = 'sp500_stocks_pacific'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    symbol = db.Column(db.String(50))
+    company_name = db.Column(db.String(100))
+    sector = db.Column(db.String(50))
+    latest_price = db.Column(db.Float)
+    previous_day_price = db.Column(db.Float)
+    month_high = db.Column(db.Float)
+    month_low = db.Column(db.Float)
+    pe_ratio = db.Column(db.Float)
+    one_year_target = db.Column(db.Float)
+    fifty_two_week_low = db.Column(db.Float)
+    fifty_two_week_high = db.Column(db.Float)
+    times_above_one_percent = db.Column(db.Integer)
+    times_below_one_percent = db.Column(db.Integer)
+    last_updated_pacific = db.Column(db.DateTime)
+    sma_20 = db.Column(db.Float)
+    sma_50 = db.Column(db.Float)

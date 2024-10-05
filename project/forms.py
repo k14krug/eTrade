@@ -35,21 +35,22 @@ class RegistrationForm(FlaskForm):
         
 class TransactionForm(FlaskForm):
     date = DateField('Transaction Date', validators=[DataRequired()], default=date.today)
-    transaction_type = SelectField('Transaction Type', 
-                                   choices=[('buy', 'Buy'), 
-                                            ('sell', 'Sell'), 
-                                            ('sell_on_limit', 'Sell on Limit'), 
-                                            ('div', 'Dividend')],
+    transaction_type = SelectField('Transaction Type',
+                                   choices=[('buy', 'Buy'),
+                                            ('sell', 'Sell'),
+                                            ('sell_on_limit', 'Sell on Limit'),
+                                            ('div', 'Dividend'),
+                                            ('int', 'Interest')],
                                    validators=[DataRequired()])
     symbol = StringField('Stock Symbol', validators=[DataRequired(), Length(min=1, max=5)])
-    quantity = FloatField('Quantity', validators=[DataRequired()])
+    quantity = FloatField('Quantity')
     price = FloatField('Price', validators=[DataRequired()])
     commission = FloatField('Commission', default=0)
     taf_fee = FloatField('TAF Fee', default=0)
     submit = SubmitField('Add Transaction')
 
     def validate_quantity(self, quantity):
-        if self.transaction_type.data in ['buy', 'sell', 'sell_on_limit'] and quantity.data <= 0:
+        if self.transaction_type.data in ['buy', 'sell', 'sell_on_limit'] and (quantity.data is None or quantity.data <= 0):
             raise ValidationError('Quantity must be greater than 0 for buy/sell transactions.')
         if self.transaction_type.data == 'div' and quantity.data != 0:
             raise ValidationError('Quantity should be 0 for dividend transactions.')

@@ -1,6 +1,15 @@
 cache_test.py
 __pycache__/
+*.pyc
+.env
+.sqlite3
+.vscode/
 junk
 junk.py
-eTrade.sqlite
-instance/eTrade.sqlite
+instance/
+migrations/
+node_modules/
+*.sql
+*.bkup
+package-lock.json
+package.json

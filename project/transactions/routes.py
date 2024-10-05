@@ -1,7 +1,7 @@
-from flask import Blueprint, render_template, redirect, request, jsonify
+from flask import Blueprint, render_template, redirect, request, jsonify, session
 from datetime import datetime, time
 from . import bp
-from project.models import Transactions
+from project.models import db, Transactions
 from project.forms import TransactionForm
 from flask_login import login_required, current_user
 from project.stock_data import StockData
@@ -35,7 +35,7 @@ def transactions():
 
             if transaction_type == 'buy':
                 cash_balance -= transaction_value
-            elif transaction_type in ['sell', 'div']:
+            elif transaction_type in ['sell', 'div', 'int']:
                 cash_balance += transaction_value
 
             stock_value = calculate_stock_value_on_date(
@@ -71,7 +71,9 @@ def transactions():
             return jsonify({'success': False, 'message': str(e)}), 400
 
     if form.errors:
+        print(f"Validation errors: {form.errors}")
         return jsonify({'success': False, 'message': 'Validation error', 'errors': form.errors}), 400
+    
 
     all_transactions = Transactions.query.filter_by(user_id=current_user.id).order_by(Transactions.date.desc(), Transactions.id.desc()).all()
     latest_transaction = Transactions.query.filter_by(user_id=current_user.id).order_by(Transactions.date.desc(), Transactions.id.desc()).first()
@@ -126,4 +128,14 @@ def transactions():
 @login_required
 def buy_opportunities():
     opportunities = get_buy_opportunities(current_user.id)
+    
+    # Print session state before modifying anything
+    print(f"Buy Opportunity - Session Stock Filters Before: {session.get('stock_filters')}")
+    
+    # Print request args to see if `stock_filters` is being passed here
+    print(f"Request Args in buy_opportunities: {request.args}")
+    
+    # After processing, print the session state again
+    print(f"Buy Opportunity - Session Stock Filters After: {session.get('stock_filters')}")
+    
     return render_template('transactions/buy_opportunities.html', opportunities=opportunities)
