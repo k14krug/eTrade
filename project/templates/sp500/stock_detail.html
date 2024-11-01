@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>{{ stock.symbol }} - {{ stock.company_name }}</h1>
+<h1>
+        <!-- Make the stock symbol a clickable link to the watchlist detail page -->
+        <a href="{{ url_for('sp500.watchlist_detail', symbol=stock.symbol) }}">{{ stock.symbol }}</a> - {{ stock.company_name }}
+</h1>
 
 
 <!--h2>Current Information</h2-->

@@ -65,6 +65,24 @@
                         <label class="form-check-label" for="below_50_day_sma">Below 50-Day Moving Average</label>
                     </div>
                 </li>
+                <li>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="within_2_percent_30_days" id="within_2_percent_30_days" {% if 'within_2_percent_30_days' in selected_filters %}checked{% endif %}>
+                        <label class="form-check-label" for="within_2_percent_30_days">Within 2% last 30 days</label>
+                    </div>
+                </li>
+                <li>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="within_10_percent_gain_90_days" id="within_10_percent_gain_90_days" {% if 'within_10_percent_gain_90_days' in selected_filters %}checked{% endif %}>
+                        <label class="form-check-label" for="within_10_percent_gain_90_days">Less 10 gain last 90 days</label>
+                    </div>
+                </li>
+                <li>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="down_1_percent" id="down_1_percent" {% if 'down_1_percent' in selected_filters %}checked{% endif %}>
+                        <label class="form-check-label" for="down_1_percent">Down 1% from yesterday Close</label>
+                    </div>
+                </li>
                 <li><hr class="dropdown-divider"></li>
                 <li>
                     <button class="btn btn-primary" id="applyFilters" type="button">Apply Filters</button>
@@ -80,30 +98,214 @@
 
 <div id="update-status"></div>
 
+<div class="row g-3 align-items-center mb-4">
+    <div class="col-auto">
+        <!-- Search Box -->
+        <input type="text" id="searchBox" class="form-control" placeholder="Search by Symbol or Company Name">
+    </div>
+
+    <div class="col-auto">
+        <!-- Rows Per Page Dropdown -->
+        <select id="rowsPerPage" class="form-select">
+            <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+            <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+            <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+            <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+        </select>
+    </div>
+</div>
+
+<div>
+    <p>Sort Column: {{ sort_column }}</p>
+    <p>Sort Direction: {{ sort_direction }}</p>
+</div>
+
 <div class="table-responsive">
     <table class="table table-striped">
         <thead>
             <tr>
-                <th>Symbol</th>
-                <th>Company Name</th>
-                <th>Sector</th>
-                <th>Latest Price</th>
-                <th>Previous Day Price</th>
-                <th>Gain/Loss %</th>
-                <th>Month High</th>
-                <th>Month Low</th>
-                <th>P/E Ratio</th>
-                <th>1 Year Target</th>
-                <th>52 Week Range</th>
-                <th>Times Above 1%</th>
-                <th>Times Below 1%</th>
-                <th>Last Update</th>
+                <th>
+                    <a href="#" class="sortable {% if sort_column == 'symbol' %}active{% endif %}" data-column="symbol">
+                        Symbol
+                        {% if sort_column == 'symbol' %}
+                            {% if sort_direction == 'asc' %}
+                                <i class="bi bi-arrow-up"></i>
+                            {% else %}
+                                <i class="bi bi-arrow-down"></i>
+                            {% endif %}
+                        {% endif %}
+                    </a>
+                </th>
+                <th>Watch Note</th>
+                <th>
+                    <a href="#" class="sortable {% if sort_column == 'company_name' %}active{% endif %}" data-column="company_name">
+                        Company Name
+                        {% if sort_column == 'company_name' %}
+                            {% if sort_direction == 'asc' %}
+                                <i class="bi bi-arrow-up"></i>
+                            {% else %}
+                                <i class="bi bi-arrow-down"></i>
+                            {% endif %}
+                        {% endif %}
+                    </a>
+                </th>
+                <th>
+                    <a href="#" class="sortable {% if sort_column == 'sector' %}active{% endif %}" data-column="sector">
+                        Sector
+                        {% if sort_column == 'sector' %}
+                            {% if sort_direction == 'asc' %}
+                                <i class="bi bi-arrow-up"></i>
+                            {% else %}
+                                <i class="bi bi-arrow-down"></i>
+                            {% endif %}
+                        {% endif %}
+                    </a>
+                </th>
+                <th>
+                    <a href="#" class="sortable {% if sort_column == 'latest_price' %}active{% endif %}" data-column="latest_price">
+                        Latest Price
+                        {% if sort_column == 'latest_price' %}
+                            {% if sort_direction == 'asc' %}
+                                <i class="bi bi-arrow-up"></i>
+                            {% else %}
+                                <i class="bi bi-arrow-down"></i>
+                            {% endif %}
+                        {% endif %}
+                    </a>
+                </th>
+                <th>
+                    <a href="#" class="sortable {% if sort_column == 'previous_day_price' %}active{% endif %}" data-column="previous_day_price">
+                        Previous Day Price
+                        {% if sort_column == 'previous_day_price' %}
+                            {% if sort_direction == 'asc' %}
+                                <i class="bi bi-arrow-up"></i>
+                            {% else %}
+                                <i class="bi bi-arrow-down"></i>
+                            {% endif %}
+                        {% endif %}
+                    </a>
+                </th>
+                <th>
+                    <a href="#" class="sortable {% if sort_column == 'gain_loss_percent' %}active{% endif %}" data-column="gain_loss_percent">
+                        Gain/Loss %
+                        {% if sort_column == 'gain_loss_percent' %}
+                            {% if sort_direction == 'asc' %}
+                                <i class="bi bi-arrow-up"></i>
+                            {% else %}
+                                <i class="bi bi-arrow-down"></i>
+                            {% endif %}
+                        {% endif %}
+                    </a>
+                </th>
+                <th>
+                    <a href="#" class="sortable {% if sort_column == 'month_high' %}active{% endif %}" data-column="month_high">
+                        Month High
+                        {% if sort_column == 'month_high' %}
+                            {% if sort_direction == 'asc' %}
+                                <i class="bi bi-arrow-up"></i>
+                            {% else %}
+                                <i class="bi bi-arrow-down"></i>
+                            {% endif %}
+                        {% endif %}
+                    </a>
+                </th>
+                <th>
+                    <a href="#" class="sortable {% if sort_column == 'month_low' %}active{% endif %}" data-column="month_low">
+                        Month Low
+                        {% if sort_column == 'month_low' %}
+                            {% if sort_direction == 'asc' %}
+                                <i class="bi bi-arrow-up"></i>
+                            {% else %}
+                                <i class="bi bi-arrow-down"></i>
+                            {% endif %}
+                        {% endif %}
+                    </a>
+                </th>
+                <th>
+                    <a href="#" class="sortable {% if sort_column == 'pe_ratio' %}active{% endif %}" data-column="pe_ratio">
+                        P/E Ratio
+                        {% if sort_column == 'pe_ratio' %}
+                            {% if sort_direction == 'asc' %}
+                                <i class="bi bi-arrow-up"></i>
+                            {% else %}
+                                <i class="bi bi-arrow-down"></i>
+                            {% endif %}
+                        {% endif %}
+                    </a>
+                </th>
+                <th>
+                    <a href="#" class="sortable {% if sort_column == 'one_year_target' %}active{% endif %}" data-column="one_year_target">
+                        1 Year Target
+                        {% if sort_column == 'one_year_target' %}
+                            {% if sort_direction == 'asc' %}
+                                <i class="bi bi-arrow-up"></i>
+                            {% else %}
+                                <i class="bi bi-arrow-down"></i>
+                            {% endif %}
+                        {% endif %}
+                    </a>
+                </th>
+                <th>
+                    <a href="#" class="sortable {% if sort_column == 'fifty_two_week_range' %}active{% endif %}" data-column="fifty_two_week_range">
+                        52 Week Range
+                        {% if sort_column == 'fifty_two_week_range' %}
+                            {% if sort_direction == 'asc' %}
+                                <i class="bi bi-arrow-up"></i>
+                            {% else %}
+                                <i class="bi bi-arrow-down"></i>
+                            {% endif %}
+                        {% endif %}
+                    </a>
+                </th>
+                <th>
+                    <a href="#" class="sortable {% if sort_column == 'times_above_one_percent' %}active{% endif %}" data-column="times_above_one_percent">
+                        Times Above 1%
+                        {% if sort_column == 'times_above_one_percent' %}
+                            {% if sort_direction == 'asc' %}
+                                <i class="bi bi-arrow-up"></i>
+                            {% else %}
+                                <i class="bi bi-arrow-down"></i>
+                            {% endif %}
+                        {% endif %}
+                    </a>
+                </th>
+                <th>
+                    <a href="#" class="sortable {{ 'active' if sort_column == 'times_below_one_percent' }}" data-column="times_below_one_percent">
+                        Times Below 1%
+                        {% if sort_column == 'times_below_one_percent' %}
+                            {% if sort_direction == 'asc' %}
+                                <i class="bi bi-arrow-up"></i>
+                            {% else %}
+                                <i class="bi bi-arrow-down"></i>
+                            {% endif %}
+                        {% endif %}
+                    </a>
+                </th>
+                <th>
+                    <a href="#" class="sortable {{ 'active' if sort_column == 'last_updated_pacific' }}" data-column="last_updated_pacific">
+                        Last Update
+                        {% if sort_column == 'last_updated_pacific' %}
+                            {% if sort_direction == 'asc' %}
+                                <i class="bi bi-arrow-up"></i>
+                            {% else %}
+                                <i class="bi bi-arrow-down"></i>
+                            {% endif %}
+                        {% endif %}
+                    </a>
+                </th>
             </tr>
         </thead>
         <tbody>
             {% for stock in stocks %}
             <tr>
                 <td><a href="{{ url_for('sp500.stock_detail', symbol=stock.symbol) }}">{{ stock.symbol }}</a></td>
+                <td>
+                    {% if watchlist_notes.get(stock.symbol) %}
+                        <a href="{{ url_for('sp500.watchlist_detail', symbol=stock.symbol) }}" class="btn btn-info btn-sm">View Note</a>
+                    {% else %}
+                        <a href="{{ url_for('sp500.watchlist_detail', symbol=stock.symbol) }}" class="btn btn-secondary btn-sm">Add Note</a>
+                    {% endif %}
+                </td>
                 <td>{{ stock.company_name }}</td>
                 <td>{{ stock.sector }}</td>
                 <td>{{ stock.latest_price }}</td>
@@ -178,6 +380,65 @@
 {{ super() }}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+
+        // Update data button click event for sorting based on column headers
+        document.querySelectorAll('.sortable').forEach(function (header) {
+            header.addEventListener('click', function (event) {
+                event.preventDefault();  // Prevent default anchor behavior
+    
+                const column = header.getAttribute('data-column');  // Get the clicked column
+                const currentUrl = new URL(window.location.href);  // Get current URL
+                const currentSort = currentUrl.searchParams.get('sort');  // Get current sort column
+                let currentDirection = currentUrl.searchParams.get('direction') || 'asc';  // Get direction, default to 'asc'
+    
+                // Determine new sort direction based on whether the same column is clicked
+                let newDirection = 'asc';  // Default direction
+                if (currentSort === column) {
+                    // Toggle direction only if the same column is clicked
+                    newDirection = currentDirection === 'asc' ? 'desc' : 'asc';
+                }
+    
+                // Set the new sort column and direction in the URL
+                currentUrl.searchParams.set('sort', column);
+                currentUrl.searchParams.set('direction', newDirection);
+                currentUrl.searchParams.set('page', '1');  // Reset to the first page
+    
+                //console.log(`Sort: ${column}, Direction: ${newDirection}`);  // Debug line to track clicks
+    
+                // Navigate to the new URL
+                window.location.href = currentUrl.toString();
+            });
+        });
+   
+        // Apply search functionality
+        const searchBox = document.getElementById('searchBox');
+        searchBox.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();  // Prevent default form submission
+                
+                const searchQuery = searchBox.value.trim();
+                const url = new URL(window.location.href);
+    
+                if (searchQuery) {
+                    url.searchParams.set('search_query', searchQuery);
+                } else {
+                    url.searchParams.delete('search_query');  // Remove if input is empty
+                }
+    
+                url.searchParams.set('page', '1');  // Reset to the first page
+                window.location.href = url.toString();
+            }
+        });
+
+        // Rows per page dropdown change event
+        const rowsPerPage = document.getElementById('rowsPerPage');
+        rowsPerPage.addEventListener('change', function() {
+            const perPage = rowsPerPage.value;
+            const url = new URL(window.location.href);
+            url.searchParams.set('per_page', perPage);
+            window.location.href = url.toString();
+        });
+
         // Debug storage initialization
         if (!localStorage.getItem('debugLogs')) {
             localStorage.setItem('debugLogs', JSON.stringify([]));
@@ -193,7 +454,7 @@
         }
     
         // Display the debug logs in the console after page reload
-        console.log("Persistent Debug Logs: ", JSON.parse(localStorage.getItem('debugLogs')));
+        //console.log("Persistent Debug Logs: ", JSON.parse(localStorage.getItem('debugLogs')));
     
         const filterCheckboxes = document.querySelectorAll('.form-check-input');
         const resetButton = document.getElementById('resetFilters');

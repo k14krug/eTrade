@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}{{ symbol }} - Stock Notes{% endblock %}
+
+{% block content %}
+<h1>{{ symbol }} - {{ stock_details.company_name }}</h1>
+<p><strong>Sector:</strong> {{ stock_details.sector }}</p>
+
+<!-- Form for adding a new note -->
+<form method="post">
+    <label for="new-note">Add a new note:</label>
+    <textarea id="new-note" name="note" rows="4" cols="50" placeholder="Enter your note here..."></textarea>
+    <br>
+    <button type="submit" class="btn btn-success">Add Note</button>
+</form>
+
+<hr>
+
+<!-- Display existing notes -->
+<h2>Existing Notes</h2>
+{% if notes %}
+    <ul class="list-group">
+        {% for note in notes %}
+            <li class="list-group-item">
+                <strong>{{ note.timestamp }}:</strong> {{ note.text }}
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>No notes available for this stock.</p>
+{% endif %}
+
+<a href="{{ url_for('sp500.watchlist') }}" class="btn btn-secondary mt-3">Back to Watchlist</a>
+{% endblock %}

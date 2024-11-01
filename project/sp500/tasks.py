@@ -24,14 +24,14 @@ def get_hist_data_for_symbol(symbol,stock_id,ticker):
     # Check if we already have up-to-date historical data
     latest_hist_data = SP500HistData.query.filter_by(stock_id=stock_id).order_by(SP500HistData.date.desc()).first()
     if latest_hist_data:
-        start_date = latest_hist_data.date + timedelta(days=1)
+        start_date = latest_hist_data.date + timedelta(days=2)
+        print(f"Latest historical data found for {symbol} - start: {start_date}")
     else:
         start_date = datetime(2020, 1, 1).date()
 
     end_date = today
 
     if start_date < today and start_date <= end_date:
-
         try:
             print(f"Fetching historical data for {symbol} - start: {start_date}, end: {end_date}")
             hist_data = ticker.history(start=start_date, end=end_date, interval='1d')
@@ -51,13 +51,15 @@ def get_hist_data_for_symbol(symbol,stock_id,ticker):
                     high_price=row['High'],
                     low_price=row['Low'],
                     close_price=row['Close'],
-                    volume=row['Volume']
-#                    sma_20=row['SMA_20'],  
-#                    sma_50=row['SMA_50']   
+                    volume=row['Volume'],
+                    sma_20=0,  
+                    sma_50=0   
                 )
                 db.session.add(stock_data)
-
+            db.session.commit()
+            print(f"Historical data for {symbol} saved successfully.")
         except Exception as e:
+            db.session.rollback()
             print(f"Error fetching historical data for {symbol}: {e}")
         
 
@@ -65,11 +67,14 @@ def get_hist_data_for_symbol(symbol,stock_id,ticker):
 def update_sp500_data(self):
     try:
         # Always update SP500Stock and SP500StockInfo even if the market is closed
-        sp500 = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')[0]
-        print(f"Updating S&P 500 data - looping through {len(sp500)} stocks")
+        wiki_stock_list = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')[0]
+        print(f"Updating S&P 500 data - looping through {len(wiki_stock_list)} stocks")
 
         # Get symbols from the current S&P 500 list
-        wiki_symbols = set(sp500['Symbol'].unique())
+        wiki_symbols = set(wiki_stock_list['Symbol'].unique())
+
+        # Add the symbol SPY to the list
+        wiki_symbols.add('SPY')
 
         # Query the database to get already tracked stocks (previously part of S&P 500)
         tracked_stocks = SP500Stock.query.all()
@@ -77,17 +82,28 @@ def update_sp500_data(self):
         
         # Merge current S&P 500 symbols with previously tracked symbols
         all_symbols = wiki_symbols.union(tracked_symbols)
+
+        # print the symbols that were in tracked stocks and not in wiki_symbols
+        print(f"Symbols in tracked_stocks but not in wiki_symbols: {tracked_symbols - wiki_symbols}")
+
+        
         print(f"Updating S&P 500 data - looping through {len(all_symbols)} stocks")
 
         # Loop through the combined symbol list
-        for symbol in all_symbols:
+        for idx, symbol in enumerate(all_symbols):
+            # print the symbol and its index in the loop
+            print(f"Updating symbol: {symbol} - # {idx}")
             # If the symbol is in the current S&P 500 list, get details from sp500 DataFrame
             if symbol in wiki_symbols:
-                row = sp500.loc[sp500['Symbol'] == symbol].iloc[0]
+                row = wiki_stock_list.loc[wiki_stock_list['Symbol'] == symbol]
+                if row.empty:
+                    print(f"No data found for {symbol} in the current S&P 500 list.")
+                    continue
+                row = row.iloc[0]
                 company = row['Security']
                 sector = row['GICS Sector']
             else:
-                # For symbols not in the current S&P 500 list, get details from SP500Stock
+                # likely a stock that was removed from S&P 500 but was previously tracked and in SP500Stock table
                 stock_record = SP500Stock.query.filter_by(symbol=symbol).first()
                 company = stock_record.company_name if stock_record else "Unknown"
                 sector = stock_record.sector if stock_record else "Unknown"
@@ -113,17 +129,21 @@ def update_sp500_data(self):
 
             stock_info.latest_price = info.get('currentPrice')
             stock_info.previous_day_price = info.get('previousClose')
-            stock_info.pe_ratio = info.get('trailingPE')
+            pe_ratio = info.get('trailingPE')
+            if pe_ratio == 'Infinity' or pe_ratio is None:
+                print(f"PE ratio was Infinity for {symbol}. Setting to None.")
+                pe_ratio = None
             stock_info.one_year_target = info.get('targetMeanPrice')
             stock_info.fifty_two_week_low = info.get('fiftyTwoWeekLow')
             stock_info.fifty_two_week_high = info.get('fiftyTwoWeekHigh')
             stock_info.last_updated = datetime.utcnow()
 
             db.session.add(stock_info)
+            db.session.commit()
 
 
             # Immediately check and update historical data for this symbol
-            print(f"Checking historical data for {symbol}")
+            #print(f"Checking historical data for {symbol}")
             get_hist_data_for_symbol(symbol,stock_record.id,ticker)
 
         db.session.commit()
