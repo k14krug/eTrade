@@ -4,7 +4,7 @@ from flask import Flask
 from .extensions import db, cache, migrate
 from .utils import make_celery
 from .config import config
-import os
+import os, sys
 from flask_login import LoginManager
 from flask_cors import CORS
 
@@ -12,15 +12,28 @@ login_manager = LoginManager()
 
 def is_auto_reload():
     """Check if the app is being reloaded due to code changes in development."""
-    return os.getenv('WERKZEUG_RUN_MAIN') == 'True'
+    run_main = os.getenv('WERKZEUG_RUN_MAIN')
+    return run_main == 'true'
+
+def is_celery_worker_process():
+    """
+    Determine if the current process is a Celery worker.
+    Celery sets the `argv` to include 'worker' when starting a worker process.
+    """
+    #print(f"In is_celery_worker_process sys.argv: {sys.argv}")
+    return 'worker' in sys.argv
 
 def submit_initial_tasks(celery):
     """Submit SP500 update task only if it's the initial startup (not a reload)."""
-    if not is_auto_reload():
-        print("Submitting SP500 data update task...")
+    if not is_auto_reload() and not is_celery_worker_process():
+        print(f"Submitting SP500 data update task on initial startup.") 
         celery.send_task('update_sp500_data')
     else:
-        print("Skipping task submission due to auto-reload.")
+        print("Skipping task submission due to auto-reload or celery worker started")
+
+#celery_test2kkrug@IPOWER:/mnt/wsl_projects/celery_test2$ celery -A run.celery worker --loglevel=info
+#In is_celery_worker_process sys.argv: ['/home/kkrug/.virtualenvs/celery_test2/bin/celery', '-A', 'run.celery', 'worker', '--loglevel=info']
+#Submitting SP500 data update task on initial startup.        
 
 def create_app(config_name=None):
     app = Flask(__name__)

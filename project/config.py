@@ -14,6 +14,7 @@ class Config:
     }
     CACHE_TYPE = "redis"
     CACHE_REDIS_URL = os.environ.get('CACHE_REDIS_URL') or "redis://localhost:6379/1"
+    FINNHUB_API_KEY = os.environ.get('FINNHUB_API_KEY') or "ct3la79r01qrd05j4vagct3la79r01qrd05j4vb0"
 
 class DevelopmentConfig(Config):
     DEBUG = True

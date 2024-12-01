@@ -10,34 +10,43 @@
             <button class="btn btn-secondary dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                 Select Filters ({{ selected_filters|length }} for {{ total_rows }} rows)
             </button>
+            <!-- Display selected filters as tags next to the button on larger screens -->
+            <div class="selected-filters-tags d-none d-lg-inline">
+                {% for filter in selected_filters[:3] %}
+                    <span class="badge bg-info text-dark">{{ filter_labels[filter] }}</span>
+                {% endfor %}
+                {% if selected_filters|length > 3 %}
+                    <span class="badge bg-secondary">+{{ selected_filters|length - 3 }} more</span>
+                {% endif %}
+            </div>
             <ul class="dropdown-menu" aria-labelledby="filterDropdown">
                 <li>
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="filter1" id="filter1" {% if 'filter1' in selected_filters %}checked{% endif %}>
+                        <input class="form-check-input" type="checkbox" value="1_percent_gain_3" id="filter1" {% if '1_percent_gain_3' in selected_filters %}checked{% endif %}>
                         <label class="form-check-label" for="filter1">1% Gain 3> 1% Loss</label>
                     </div>
                 </li>
                 <li>
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="filter2" id="filter2" {% if 'filter2' in selected_filters %}checked{% endif %}>
+                        <input class="form-check-input" type="checkbox" value="pe_ratio_less_30" id="filter2" {% if 'pe_ratio_less_30' in selected_filters %}checked{% endif %}>
                         <label class="form-check-label" for="filter2">PE Ratio < 30</label>
                     </div>
                 </li>
                 <li>
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="filter3" id="filter3" {% if 'filter3' in selected_filters %}checked{% endif %}>
+                        <input class="form-check-input" type="checkbox" value="greater_1_gain" id="filter3" {% if 'greater_1_gain' in selected_filters %}checked{% endif %}>
                         <label class="form-check-label" for="filter3">>1 Gain</label>
                     </div>
                 </li>
                 <li>
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="filter4" id="filter4" {% if 'filter4' in selected_filters %}checked{% endif %}>
+                        <input class="form-check-input" type="checkbox" value="greater_1_loss" id="filter4" {% if 'greater_1_loss' in selected_filters %}checked{% endif %}>
                         <label class="form-check-label" for="filter4">>1 Loss</label>
                     </div>
                 </li>
                 <li>
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="filter5" id="filter5" {% if 'filter5' in selected_filters %}checked{% endif %}>
+                        <input class="form-check-input" type="checkbox" value="less_90_percent_52_week_high" id="filter5" {% if 'less_90_percent_52_week_high' in selected_filters %}checked{% endif %}>
                         <label class="form-check-label" for="filter5"><90% of 52 Week High</label>
                     </div>
                 </li>
@@ -83,6 +92,12 @@
                         <label class="form-check-label" for="down_1_percent">Down 1% from yesterday Close</label>
                     </div>
                 </li>
+                <li>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="below_sector_10_percent" id="below_sector_10_percent" {% if 'below_sector_10_percent' in selected_filters %}checked{% endif %}>
+                        <label class="form-check-label" for="below_sector_10_percent">below Sector by 10%</label>
+                    </div>
+                </li>
                 <li><hr class="dropdown-divider"></li>
                 <li>
                     <button class="btn btn-primary" id="applyFilters" type="button">Apply Filters</button>
@@ -96,7 +111,7 @@
     </div>
 </div>
 
-<div id="update-status"></div>
+<div id="update-status" style="color: red;"></div>
 
 <div class="row g-3 align-items-center mb-4">
     <div class="col-auto">
@@ -116,8 +131,7 @@
 </div>
 
 <div>
-    <p>Sort Column: {{ sort_column }}</p>
-    <p>Sort Direction: {{ sort_direction }}</p>
+    <p>Sort Column: {{ sort_column }} | Sort Direction: {{ sort_direction }}</p>
 </div>
 
 <div class="table-responsive">
@@ -293,7 +307,7 @@
                         {% endif %}
                     </a>
                 </th>
-            </tr>
+              </tr>
         </thead>
         <tbody>
             {% for stock in stocks %}
@@ -383,6 +397,13 @@
 
         // Update data button click event for sorting based on column headers
         document.querySelectorAll('.sortable').forEach(function (header) {
+
+            const taskId = "{{ session.get('task_id', '') }}";
+
+            if (taskId) {
+                checkTaskStatus(taskId);
+            }
+            
             header.addEventListener('click', function (event) {
                 event.preventDefault();  // Prevent default anchor behavior
     
@@ -512,10 +533,55 @@
             logDebug("Redirecting to base URL: " + baseUrl);
             window.location.href = baseUrl;  // Reload page without parameters
         });
+
+        // Generated by Copilot
+        // Update data button click event
+        document.getElementById('updateData').addEventListener('click', function() {
+            const updateStatus = document.getElementById('update-status');
+            updateStatus.innerHTML = '<p>Updating data, please wait...</p>';
+
+            fetch('{{ url_for("sp500.update_data") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const taskId = data.task_id;
+                checkTaskStatus(taskId);
+            })
+            .catch(error => {
+                updateStatus.innerHTML = '<p>Error updating data. Please try again later.</p>';
+                console.error('Error:', error);
+            });
+        });
+
+        // Generated by Copilot
+        // Function to check task status
+        function checkTaskStatus(taskId) {
+            fetch(`/task/${taskId}`)
+            .then(response => response.json())
+            .then(data => {
+                const updateStatus = document.getElementById('update-status');
+                if (data.state === 'PENDING' || data.state === 'PROGRESS') {
+                    updateStatus.innerHTML = `<p>${data.status}</p>`;
+                    setTimeout(() => checkTaskStatus(taskId), 1000);
+                } else if (data.state === 'SUCCESS') {
+                    updateStatus.innerHTML = '<p>Data updated successfully!</p>';
+                } else {
+                    updateStatus.innerHTML = `<p>Error: ${data.status}</p>`;
+                }
+            })
+            .catch(error => {
+                const updateStatus = document.getElementById('update-status');
+                updateStatus.innerHTML = '<p>Error checking task status. Please try again later.</p>';
+                console.error('Error:', error);
+            });
+        }
     });
     </script>
     
     
 {% endblock %}
 
-    

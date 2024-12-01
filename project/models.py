@@ -24,6 +24,7 @@ class Transactions(db.Model):
     symbol = db.Column(db.String(10), nullable=False)
     quantity = db.Column(db.Float, nullable=False)
     price = db.Column(db.Float, nullable=False)
+    average_price = db.Column(db.Float)
     commission = db.Column(db.Float, nullable=False)
     cash_balance = db.Column(db.Float, nullable=False)
     stock_value = db.Column(db.Float, nullable=False)
@@ -45,6 +46,10 @@ class SP500Stock(db.Model):
     company_name = db.Column(db.String(100), nullable=False)
     sector = db.Column(db.String(50))
     last_updated = db.Column(db.DateTime, default=datetime.utcnow)
+    next_eps_date = db.Column(db.Date)
+    most_recent_eps_date = db.Column(db.Date)
+    actual_eps = db.Column(db.Float)
+    estimated_eps = db.Column(db.Float)
 
 class SP500HistData(db.Model):
     __tablename__ = 'sp500_stock_data'

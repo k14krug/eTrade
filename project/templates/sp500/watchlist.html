@@ -13,14 +13,14 @@
             <th>Sector</th>
             <th>Most Recent Note</th>
             <th>Actions</th>
+            <th>Stock Details</th> <!-- New column header for stock details -->
+            <th>Watchlist Details</th> <!-- New column header for watchlist details -->
         </tr>
     </thead>
     <tbody>
         {% for stock in watchlist %}
         <tr>
-            <td>
-                <a href="{{ url_for('sp500.watchlist_detail', symbol=stock) }}">{{ stock }}</a>
-            </td>
+            <td>{{ stock }}</td>
             <td>{{ stock_details[stock].company_name }}</td>
             <td>{{ stock_details[stock].sector }}</td>
             <td>{{ recent_notes[stock] }}</td>
@@ -31,6 +31,12 @@
                     <button type="submit" class="btn btn-danger btn-sm">Remove</button>
                 </form>
             </td>
+            <td>
+                <a href="{{ url_for('sp500.stock_detail', symbol=stock) }}" class="btn btn-info btn-sm">Details</a>
+            </td> <!-- New column for stock details link -->
+            <td>
+                <a href="{{ url_for('sp500.watchlist_detail', symbol=stock) }}" class="btn btn-warning btn-sm">Watchlist</a>
+            </td> <!-- New column for watchlist details link -->
         </tr>
         {% endfor %}
     </tbody>

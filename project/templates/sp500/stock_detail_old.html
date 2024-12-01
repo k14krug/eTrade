@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>
+        <!-- Make the stock symbol a clickable link to the watchlist detail page -->
+        <a href="{{ url_for('sp500.watchlist_detail', symbol=stock.symbol) }}">{{ stock.symbol }}</a> - {{ stock.company_name }}
+</h1>
+
+
+<!--h2>Current Information</h2-->
+<table>
+    <tr><th>Latest Price</th><td>{{ stock.info.latest_price }}</td></tr>
+    <tr><th>Previous Day Price</th><td>{{ stock.info.previous_day_price }}</td></tr>
+    <tr><th>P/E Ratio</th><td>{{ stock.info.pe_ratio }}</td></tr>
+    <tr><th>1 Year Target</th><td>{{ stock.info.one_year_target }}</td></tr>
+    <tr><th>52 Week Range</th><td>{{ stock.info.fifty_two_week_low }} - {{ stock.info.fifty_two_week_high }}</td></tr>
+    <tr><th>Month High</th><td>{{ stock.info.month_high }}</td></tr>
+    <tr><th>Month Low</th><td>{{ stock.info.month_low }}</td></tr>
+</table>
+
+<br>
+<h2>Historical Price Chart</h2>
+<!-- Timeframe selection form -->
+<form method="GET" action="{{ url_for('sp500.stock_detail', symbol=stock.symbol) }}" id="timeframe-form">
+    <label for="timeframe">Select Timeframe:</label>
+    <select name="timeframe" id="timeframe">
+        <option value="max" {% if timeframe == 'max' %}selected{% endif %}>Max</option>
+        <option value="1y" {% if timeframe == '1y' %}selected{% endif %}>1 Year</option>
+        <option value="ytd" {% if timeframe == 'ytd' %}selected{% endif %}>Year to Date (YTD)</option>
+        <option value="3m" {% if timeframe == '3m' %}selected{% endif %}>3 Months</option>
+        <option value="1m" {% if timeframe == '1m' %}selected{% endif %}>1 Month</option>
+        <option value="5d" {% if timeframe == '5d' %}selected{% endif %}>Last 5 Days</option>
+        <option value="intraday" {% if timeframe == 'intraday' %}selected{% endif %}>Intraday</option>
+    </select>
+</form>
+
+<div id="price-chart"></div>
+
+<h2>Historical Volume Chart</h2>
+<div id="volume-chart"></div>
+
+<!-- News Section -->
+<h2>Latest News</h2>
+<div class="news-container">
+    {% if stock_news %}
+        {% for article in stock_news %}
+            <div class="news-article">
+                <div class="news-thumbnail">
+                    <img src="{{ article['thumbnail'] }}" alt="News Thumbnail" width="140" height="140">
+                </div>
+                <div class="news-details">
+                    <a href="{{ article['link'] }}" target="_blank"><strong>{{ article['title'] }}</strong></a>
+                    <br><em>{{ article['publisher'] }}</em> - {{ article['published_date'] }}
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No recent news available for this stock.</p>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block styles %}
+<style>
+    /* Basic styling for the news articles in two columns */
+    .news-container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr); /* Two equal columns */
+        gap: 20px; /* Space between articles */
+    }
+
+    .news-article {
+        display: flex;
+        align-items: start;
+    }
+
+    .news-thumbnail img {
+        margin-right: 15px;
+    }
+
+    .news-details {
+        flex-grow: 1;
+    }
+
+    /* Make the layout responsive: switch to one column on smaller screens */
+    @media (max-width: 768px) {
+        .news-container {
+            grid-template-columns: 1fr; /* Switch to one column */
+        }
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Add event listener to the dropdown to auto-submit the form when a new option is selected
+    document.getElementById('timeframe').addEventListener('change', function() {
+        document.getElementById('timeframe-form').submit();
+    });
+</script>
+
+<!-- Load Plotly from CDN -->
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const params = new URLSearchParams(window.location.search);
+        const timeframe = params.get('timeframe') || '1y';
+
+        // Fetch historical data and stock news for the selected timeframe
+        fetch(`{{ url_for("sp500.stock_detail", symbol=stock.symbol) }}?timeframe=${timeframe}&format=json`)
+            .then(response => response.json())
+            .then(data => {
+                // Create price chart
+                var priceTrace = {
+                    x: data.dates,
+                    y: data.prices,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: 'Price'
+                };
+
+                var priceLayout = {
+                    title: '{{ stock.symbol }} Price Chart',
+                    xaxis: { title: 'Date/Time' },
+                    yaxis: { title: 'Price' }
+                };
+
+                Plotly.newPlot('price-chart', [priceTrace], priceLayout);
+
+                // Create volume chart
+                var volumeTrace = {
+                    x: data.dates,
+                    y: data.volumes,
+                    type: 'bar',
+                    name: 'Volume'
+                };
+
+                var volumeLayout = {
+                    title: '{{ stock.symbol }} Volume Chart',
+                    xaxis: { title: 'Date/Time' },
+                    yaxis: { title: 'Volume' }
+                };
+
+                Plotly.newPlot('volume-chart', [volumeTrace], volumeLayout);
+            })
+            .catch(error => console.error('Error fetching data:', error));
+    });
+</script>
+{% endblock %}

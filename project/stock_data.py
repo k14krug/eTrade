@@ -3,6 +3,8 @@ import yfinance as yf
 from datetime import datetime, timedelta
 import pandas as pd
 import time
+from project.models import SP500Stock  # Assuming models are in project/models.py
+
 
 class StockData:
     @staticmethod
@@ -151,3 +153,54 @@ class StockData:
             formatted_news.append(formatted_article)
         
         return formatted_news
+       
+    @staticmethod
+    def get_sector_symbol(sector_name):
+        """
+        Finds the stock symbol representing a sector based on the company name.
+        """
+        sector_stock = SP500Stock.query.filter_by(company_name=sector_name).first()
+        if sector_stock:
+            return sector_stock.symbol
+        return None
+
+    @staticmethod
+    def get_sector_data(symbol, start_date):
+        """
+        Fetches historical data for a sector symbol over the specified timeframe.
+        """
+        ticker = yf.Ticker(symbol)
+        sector_data = ticker.history(start=start_date)
+
+        # Prepare data for JSON or charting
+        dates = [d.strftime('%Y-%m-%d') for d in sector_data.index]
+        prices = sector_data['Close'].tolist()
+        volumes = sector_data['Volume'].tolist()
+
+        return {
+            'dates': dates,
+            'prices': prices,
+            'volumes': volumes
+        }
+
+    @staticmethod
+    def normalize_to_percentage_scale(primary_data, comparison_data):
+        """
+        Normalizes the comparison data (e.g., SPY or sector) to the percentage scale
+        of the primary stock data.
+        """
+        if not primary_data or not comparison_data:
+            return []
+
+        initial_primary_price = primary_data['prices'][0]
+        initial_comparison_price = comparison_data['prices'][0]
+
+        normalized_comparison_prices = [
+            initial_primary_price * (price / initial_comparison_price)
+            for price in comparison_data['prices']
+        ]
+
+        return {
+            'dates': comparison_data['dates'],
+            'normalized_prices': normalized_comparison_prices
+        }

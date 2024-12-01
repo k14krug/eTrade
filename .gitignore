@@ -13,3 +13,4 @@ node_modules/
 *.bkup
 package-lock.json
 package.json
+watchlist.json

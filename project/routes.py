@@ -43,18 +43,19 @@ def clear_cache():
         logger.error(f"Error clearing cache: {str(e)}")
         return jsonify({"error": "Failed to clear cache"}), 500
 
-@main.route('/update', methods=['POST'])
-@cache.cached(timeout=300)  # Cache for 1 hour
-def update_data():
-    logger.info("Update Button pressed - Updating S&P 500 data via submission of Celery Task")
-    task = update_sp500_data.delay()
-    logger.info(f"Returned from celery submission of Task ID: {task.id}")
-    return jsonify({'task_id': str(task.id)}), 202
+# this route/function is now in sp500/routes.py
+#@main.route('/update', methods=['POST'])
+#@cache.cached(timeout=300)  # Cache for 1 hour
+#def update_data():
+#    logger.info("Update Button pressed - Updating S&P 500 data via submission of Celery Task")
+#    task = update_sp500_data.delay()
+#    logger.info(f"Returned from celery submission of Task ID: {task.id}")
+#    return jsonify({'task_id': str(task.id)}), 202
 
 @main.route('/task/<task_id>', methods=['GET'])
 def task_status(task_id):
-    logger.info(f"Checking status for task ID: {task_id}")
     task = update_sp500_data.AsyncResult(task_id)
+    logger.info(f"Checking status for task ID: {task_id}, state: {task.state}")
     if task.state == 'PENDING':
         response = {
             'state': task.state,
